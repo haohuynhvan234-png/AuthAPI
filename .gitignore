@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Environment & Secrets
+.env
+.env.local
+
+# Logs
+npm-debug.log*
+
+# IDE & Misc
+.vscode/
+users.http
