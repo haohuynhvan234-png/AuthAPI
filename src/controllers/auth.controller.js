@@ -91,8 +91,8 @@ export const login = async (req, res, next) => {
       email: normalizedEmail,
     }).select("+password");
 
-    // 5. Không tìm thấy user
-    if (!user) {
+    // 5. Không tìm thấy user hoặc user không có mật khẩu
+    if (!user || !user.password) {
       return res.status(401).json({
         message: "Email hoặc mật khẩu không đúng",
         error: "Unauthorized",
@@ -112,12 +112,14 @@ export const login = async (req, res, next) => {
     }
 
     // 7. Tạo JWT
+    const jwtSecret =
+      process.env.JWT_SECRET || "your_super_secret_key_13082007";
     const token = jwt.sign(
       {
         userId: user._id.toString(),
         role: user.role,
       },
-      process.env.JWT_SECRET,
+      jwtSecret,
       {
         expiresIn: "1d",
       },

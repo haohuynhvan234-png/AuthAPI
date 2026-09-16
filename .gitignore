@@ -4,7 +4,7 @@ node_modules/
 # Environment & Secrets
 .env
 .env.local
-.gitignore
+
 # Logs
 npm-debug.log*
 
