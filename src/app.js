@@ -7,6 +7,37 @@ import authRoutes from "./routes/auth.routes.js";
 const app = express();
 
 app.use(cors());
+//sử dụng cors để cho phép trang đường dẫn được cho phép truy cập api
+const allowedOrigins = [
+  "http://localhost:3000",
+
+  // Vercel frontend
+  "https://auth-fe-kislai.vercel.app/",
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Cho phép request không có Origin
+      // Ví dụ: Postman, Swagger, server-to-server
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
+    allowedHeaders: ["Content-Type", "Authorization"],
+
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // Swagger UI - Tài liệu API
@@ -35,3 +66,4 @@ app.use((err, req, res, next) => {
 });
 
 export default app;
+//import cors from "cors";
