@@ -12,7 +12,7 @@ const allowedOrigins = [
   "http://localhost:3000",
 
   // Vercel frontend
-  "https://auth-fe-kislai.vercel.app/",
+  "https://auth-fe-blush.vercel.app/",
 ];
 
 app.use(
