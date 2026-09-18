@@ -1,8 +1,9 @@
-import express from "express";
+﻿import express from "express";
 
 import {
   register,
   login,
+  googleLogin,
   getMe,
   changePassword,
   logout,
@@ -12,21 +13,22 @@ import authorizeRoles from "../middleware/role.middleware.js";
 
 const router = express.Router();
 
+router.post("/google-login", googleLogin);
 // ============================================================
-//  POST /api/auth/register - Đăng ký tài khoản mới
+//  POST /api/auth/register - ÄÄƒng kÃ½ tÃ i khoáº£n má»›i
 // ============================================================
 /**
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Đăng ký tài khoản mới
+ *     summary: ÄÄƒng kÃ½ tÃ i khoáº£n má»›i
  *     description: |
- *       Tạo tài khoản người dùng mới với **name**, **email** và **password**.
- *       - Email sẽ được chuẩn hóa (lowercase, trim).
- *       - Password phải có tối thiểu 6 ký tự và được hash bằng bcrypt trước khi lưu.
- *       - Vai trò (role) mặc định là `user`.
+ *       Táº¡o tÃ i khoáº£n ngÆ°á»i dÃ¹ng má»›i vá»›i **name**, **email** vÃ  **password**.
+ *       - Email sáº½ Ä‘Æ°á»£c chuáº©n hÃ³a (lowercase, trim).
+ *       - Password pháº£i cÃ³ tá»‘i thiá»ƒu 6 kÃ½ tá»± vÃ  Ä‘Æ°á»£c hash báº±ng bcrypt trÆ°á»›c khi lÆ°u.
+ *       - Vai trÃ² (role) máº·c Ä‘á»‹nh lÃ  `user`.
  *     tags:
- *       - 🔐 Authentication
+ *       - ðŸ” Authentication
  *     requestBody:
  *       required: true
  *       content:
@@ -39,7 +41,7 @@ const router = express.Router();
  *             password: "123456"
  *     responses:
  *       201:
- *         description: Đăng ký thành công
+ *         description: ÄÄƒng kÃ½ thÃ nh cÃ´ng
  *         content:
  *           application/json:
  *             schema:
@@ -47,11 +49,11 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Đăng ký thành công"
+ *                   example: "ÄÄƒng kÃ½ thÃ nh cÃ´ng"
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *             example:
- *               message: "Đăng ký thành công"
+ *               message: "ÄÄƒng kÃ½ thÃ nh cÃ´ng"
  *               user:
  *                 _id: "6a8c4967d4971d564b9ba663"
  *                 name: "Nguyen Van A"
@@ -61,52 +63,52 @@ const router = express.Router();
  *                 updatedAt: "2026-08-24T13:38:47.263Z"
  *                 __v: 0
  *       400:
- *         description: Dữ liệu không hợp lệ (thiếu trường bắt buộc hoặc password quá ngắn)
+ *         description: Dá»¯ liá»‡u khÃ´ng há»£p lá»‡ (thiáº¿u trÆ°á»ng báº¯t buá»™c hoáº·c password quÃ¡ ngáº¯n)
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             examples:
  *               missingFields:
- *                 summary: Thiếu trường bắt buộc
+ *                 summary: Thiáº¿u trÆ°á»ng báº¯t buá»™c
  *                 value:
- *                   message: "Name, email và password là bắt buộc"
+ *                   message: "Name, email vÃ  password lÃ  báº¯t buá»™c"
  *                   error: "BadRequest"
  *                   statusCode: 400
  *               shortPassword:
- *                 summary: Password quá ngắn
+ *                 summary: Password quÃ¡ ngáº¯n
  *                 value:
- *                   message: "Password phải có ít nhất 6 ký tự"
+ *                   message: "Password pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±"
  *                   error: "BadRequest"
  *                   statusCode: 400
  *       409:
- *         description: Email đã được đăng ký bởi tài khoản khác
+ *         description: Email Ä‘Ã£ Ä‘Æ°á»£c Ä‘Äƒng kÃ½ bá»Ÿi tÃ i khoáº£n khÃ¡c
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             example:
- *               message: "Email đã được đăng ký"
+ *               message: "Email Ä‘Ã£ Ä‘Æ°á»£c Ä‘Äƒng kÃ½"
  *               error: "Conflict"
  *               statusCode: 409
  */
 router.post("/register", register);
 
 // ============================================================
-//  POST /api/auth/login - Đăng nhập
+//  POST /api/auth/login - ÄÄƒng nháº­p
 // ============================================================
 /**
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Đăng nhập
+ *     summary: ÄÄƒng nháº­p
  *     description: |
- *       Xác thực người dùng bằng **email** và **password**.
- *       Nếu thành công, trả về thông tin user kèm **JWT token** (hết hạn sau 1 ngày).
+ *       XÃ¡c thá»±c ngÆ°á»i dÃ¹ng báº±ng **email** vÃ  **password**.
+ *       Náº¿u thÃ nh cÃ´ng, tráº£ vá» thÃ´ng tin user kÃ¨m **JWT token** (háº¿t háº¡n sau 1 ngÃ y).
  *
- *       JWT payload chứa: `{ userId, role }`
+ *       JWT payload chá»©a: `{ userId, role }`
  *     tags:
- *       - 🔐 Authentication
+ *       - ðŸ” Authentication
  *     requestBody:
  *       required: true
  *       content:
@@ -118,7 +120,7 @@ router.post("/register", register);
  *             password: "123456"
  *     responses:
  *       200:
- *         description: Đăng nhập thành công - Trả về user info và JWT token
+ *         description: ÄÄƒng nháº­p thÃ nh cÃ´ng - Tráº£ vá» user info vÃ  JWT token
  *         content:
  *           application/json:
  *             schema:
@@ -126,7 +128,7 @@ router.post("/register", register);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Đăng nhập thành công"
+ *                   example: "ÄÄƒng nháº­p thÃ nh cÃ´ng"
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *                 token:
@@ -135,10 +137,10 @@ router.post("/register", register);
  *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *                 expiresIn:
  *                   type: string
- *                   description: Thời gian hết hạn của token
+ *                   description: Thá»i gian háº¿t háº¡n cá»§a token
  *                   example: "1d"
  *             example:
- *               message: "Đăng nhập thành công"
+ *               message: "ÄÄƒng nháº­p thÃ nh cÃ´ng"
  *               user:
  *                 _id: "6a8c4967d4971d564b9ba663"
  *                 name: "Nguyen Van A"
@@ -150,48 +152,48 @@ router.post("/register", register);
  *               token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YThjNDk2N2Q0OTcxZDU2NGI5YmE2NjMiLCJyb2xlIjoidXNlciIsImlhdCI6MTcyNDUwNjMyN30.xxxxx"
  *               expiresIn: "1d"
  *       400:
- *         description: Thiếu email hoặc password
+ *         description: Thiáº¿u email hoáº·c password
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             example:
- *               message: "Email và password là bắt buộc"
+ *               message: "Email vÃ  password lÃ  báº¯t buá»™c"
  *               error: "BadRequest"
  *               statusCode: 400
  *       401:
- *         description: Email hoặc mật khẩu không đúng
+ *         description: Email hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             example:
- *               message: "Email hoặc mật khẩu không đúng"
+ *               message: "Email hoáº·c máº­t kháº©u khÃ´ng Ä‘Ãºng"
  *               error: "Unauthorized"
  *               statusCode: 401
  */
 router.post("/login", login);
 
 // ============================================================
-//  GET /api/auth/me - Lấy thông tin người dùng hiện tại
+//  GET /api/auth/me - Láº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng hiá»‡n táº¡i
 // ============================================================
 /**
  * @swagger
  * /api/auth/me:
  *   get:
- *     summary: Lấy thông tin người dùng hiện tại
+ *     summary: Láº¥y thÃ´ng tin ngÆ°á»i dÃ¹ng hiá»‡n táº¡i
  *     description: |
- *       Trả về thông tin chi tiết của người dùng đang đăng nhập.
- *       Yêu cầu gửi kèm **JWT token** trong Header `Authorization`.
+ *       Tráº£ vá» thÃ´ng tin chi tiáº¿t cá»§a ngÆ°á»i dÃ¹ng Ä‘ang Ä‘Äƒng nháº­p.
+ *       YÃªu cáº§u gá»­i kÃ¨m **JWT token** trong Header `Authorization`.
  *
- *       Token được giải mã để lấy `userId`, sau đó truy vấn database.
+ *       Token Ä‘Æ°á»£c giáº£i mÃ£ Ä‘á»ƒ láº¥y `userId`, sau Ä‘Ã³ truy váº¥n database.
  *     tags:
- *       - 👤 User Profile
+ *       - ðŸ‘¤ User Profile
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: Lấy thông tin thành công
+ *         description: Láº¥y thÃ´ng tin thÃ nh cÃ´ng
  *         content:
  *           application/json:
  *             schema:
@@ -199,11 +201,11 @@ router.post("/login", login);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Lấy thông tin thành công"
+ *                   example: "Láº¥y thÃ´ng tin thÃ nh cÃ´ng"
  *                 user:
  *                   $ref: '#/components/schemas/User'
  *             example:
- *               message: "Lấy thông tin thành công"
+ *               message: "Láº¥y thÃ´ng tin thÃ nh cÃ´ng"
  *               user:
  *                 _id: "6a8c4967d4971d564b9ba663"
  *                 name: "Nguyen Van A"
@@ -213,55 +215,55 @@ router.post("/login", login);
  *                 updatedAt: "2026-08-24T13:38:47.263Z"
  *                 __v: 0
  *       401:
- *         description: Không có token hoặc token không hợp lệ / đã hết hạn
+ *         description: KhÃ´ng cÃ³ token hoáº·c token khÃ´ng há»£p lá»‡ / Ä‘Ã£ háº¿t háº¡n
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             examples:
  *               noToken:
- *                 summary: Không tìm thấy token
+ *                 summary: KhÃ´ng tÃ¬m tháº¥y token
  *                 value:
- *                   message: "Không tìm thấy token"
+ *                   message: "KhÃ´ng tÃ¬m tháº¥y token"
  *                   error: "Unauthorized"
  *                   statusCode: 401
  *               invalidToken:
- *                 summary: Token không hợp lệ hoặc đã hết hạn
+ *                 summary: Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n
  *                 value:
- *                   message: "Token không hợp lệ hoặc đã hết hạn"
+ *                   message: "Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n"
  *                   error: "Unauthorized"
  *                   statusCode: 401
  *       404:
- *         description: Không tìm thấy người dùng trong database
+ *         description: KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i dÃ¹ng trong database
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             example:
- *               message: "Không tìm thấy người dùng"
+ *               message: "KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i dÃ¹ng"
  *               error: "NotFound"
  *               statusCode: 404
  */
 router.get("/me", authMiddleware, getMe);
 
 // ============================================================
-//  PUT /api/auth/change-password - Đổi mật khẩu
+//  PUT /api/auth/change-password - Äá»•i máº­t kháº©u
 // ============================================================
 /**
  * @swagger
  * /api/auth/change-password:
  *   put:
- *     summary: Đổi mật khẩu
+ *     summary: Äá»•i máº­t kháº©u
  *     description: |
- *       Cho phép người dùng đang đăng nhập đổi mật khẩu.
- *       Yêu cầu gửi kèm **JWT token** trong Header `Authorization`.
+ *       Cho phÃ©p ngÆ°á»i dÃ¹ng Ä‘ang Ä‘Äƒng nháº­p Ä‘á»•i máº­t kháº©u.
+ *       YÃªu cáº§u gá»­i kÃ¨m **JWT token** trong Header `Authorization`.
  *
- *       Quy trình:
- *       1. Xác thực `oldPassword` với mật khẩu hiện tại trong DB.
- *       2. Hash `newPassword` bằng bcrypt (salt round = 10).
- *       3. Cập nhật mật khẩu mới vào database.
+ *       Quy trÃ¬nh:
+ *       1. XÃ¡c thá»±c `oldPassword` vá»›i máº­t kháº©u hiá»‡n táº¡i trong DB.
+ *       2. Hash `newPassword` báº±ng bcrypt (salt round = 10).
+ *       3. Cáº­p nháº­t máº­t kháº©u má»›i vÃ o database.
  *     tags:
- *       - 👤 User Profile
+ *       - ðŸ‘¤ User Profile
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -275,7 +277,7 @@ router.get("/me", authMiddleware, getMe);
  *             newPassword: "654321"
  *     responses:
  *       200:
- *         description: Đổi mật khẩu thành công
+ *         description: Äá»•i máº­t kháº©u thÃ nh cÃ´ng
  *         content:
  *           application/json:
  *             schema:
@@ -284,76 +286,76 @@ router.get("/me", authMiddleware, getMe);
  *                 message:
  *                   type: string
  *             example:
- *               message: "Đổi mật khẩu thành công"
+ *               message: "Äá»•i máº­t kháº©u thÃ nh cÃ´ng"
  *       400:
- *         description: Dữ liệu không hợp lệ
+ *         description: Dá»¯ liá»‡u khÃ´ng há»£p lá»‡
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             examples:
  *               missingFields:
- *                 summary: Thiếu trường bắt buộc
+ *                 summary: Thiáº¿u trÆ°á»ng báº¯t buá»™c
  *                 value:
- *                   message: "oldPassword và newPassword là bắt buộc"
+ *                   message: "oldPassword vÃ  newPassword lÃ  báº¯t buá»™c"
  *                   error: "BadRequest"
  *                   statusCode: 400
  *               shortPassword:
- *                 summary: Password mới quá ngắn
+ *                 summary: Password má»›i quÃ¡ ngáº¯n
  *                 value:
- *                   message: "Password mới phải có ít nhất 6 ký tự"
+ *                   message: "Password má»›i pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±"
  *                   error: "BadRequest"
  *                   statusCode: 400
  *       401:
- *         description: Token không hợp lệ hoặc mật khẩu hiện tại sai
+ *         description: Token khÃ´ng há»£p lá»‡ hoáº·c máº­t kháº©u hiá»‡n táº¡i sai
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             examples:
  *               invalidToken:
- *                 summary: Token không hợp lệ
+ *                 summary: Token khÃ´ng há»£p lá»‡
  *                 value:
- *                   message: "Token không hợp lệ hoặc đã hết hạn"
+ *                   message: "Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n"
  *                   error: "Unauthorized"
  *                   statusCode: 401
  *               wrongPassword:
- *                 summary: Mật khẩu hiện tại không đúng
+ *                 summary: Máº­t kháº©u hiá»‡n táº¡i khÃ´ng Ä‘Ãºng
  *                 value:
- *                   message: "Mật khẩu hiện tại không đúng"
+ *                   message: "Máº­t kháº©u hiá»‡n táº¡i khÃ´ng Ä‘Ãºng"
  *                   error: "Unauthorized"
  *                   statusCode: 401
  *       404:
- *         description: Không tìm thấy người dùng
+ *         description: KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i dÃ¹ng
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             example:
- *               message: "Không tìm thấy người dùng"
+ *               message: "KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i dÃ¹ng"
  *               error: "NotFound"
  *               statusCode: 404
  */
 router.put("/change-password", authMiddleware, changePassword);
 
 // ============================================================
-//  POST /api/auth/logout - Đăng xuất
+//  POST /api/auth/logout - ÄÄƒng xuáº¥t
 // ============================================================
 /**
  * @swagger
  * /api/auth/logout:
  *   post:
- *     summary: Đăng xuất
+ *     summary: ÄÄƒng xuáº¥t
  *     description: |
- *       Đăng xuất người dùng khỏi hệ thống.
+ *       ÄÄƒng xuáº¥t ngÆ°á»i dÃ¹ng khá»i há»‡ thá»‘ng.
  *
- *       > **Lưu ý:** API hiện tại chỉ trả về thông báo thành công.
- *       > Việc xóa token phía client (localStorage/Cookie) do Frontend đảm nhiệm.
+ *       > **LÆ°u Ã½:** API hiá»‡n táº¡i chá»‰ tráº£ vá» thÃ´ng bÃ¡o thÃ nh cÃ´ng.
+ *       > Viá»‡c xÃ³a token phÃ­a client (localStorage/Cookie) do Frontend Ä‘áº£m nhiá»‡m.
  *     tags:
- *       - 🔐 Authentication
+ *       - ðŸ” Authentication
  *     responses:
  *       200:
- *         description: Đăng xuất thành công
+ *         description: ÄÄƒng xuáº¥t thÃ nh cÃ´ng
  *         content:
  *           application/json:
  *             schema:
@@ -362,7 +364,7 @@ router.put("/change-password", authMiddleware, changePassword);
  *                 message:
  *                   type: string
  *             example:
- *               message: "Đăng xuất thành công"
+ *               message: "ÄÄƒng xuáº¥t thÃ nh cÃ´ng"
  */
 router.post("/logout", logout);
 
@@ -373,22 +375,22 @@ router.post("/logout", logout);
  * @swagger
  * /api/auth/admin/dashboard:
  *   get:
- *     summary: Truy cập Admin Dashboard
+ *     summary: Truy cáº­p Admin Dashboard
  *     description: |
- *       Trang quản trị dành riêng cho người dùng có vai trò **admin**.
+ *       Trang quáº£n trá»‹ dÃ nh riÃªng cho ngÆ°á»i dÃ¹ng cÃ³ vai trÃ² **admin**.
  *
- *       Yêu cầu:
- *       1. Gửi kèm **JWT token** hợp lệ trong Header `Authorization`.
- *       2. Token phải thuộc tài khoản có `role: "admin"`.
+ *       YÃªu cáº§u:
+ *       1. Gá»­i kÃ¨m **JWT token** há»£p lá»‡ trong Header `Authorization`.
+ *       2. Token pháº£i thuá»™c tÃ i khoáº£n cÃ³ `role: "admin"`.
  *
- *       Nếu role là `user` → trả về **403 Forbidden**.
+ *       Náº¿u role lÃ  `user` â†’ tráº£ vá» **403 Forbidden**.
  *     tags:
- *       - 🛡️ Admin (RBAC)
+ *       - ðŸ›¡ï¸ Admin (RBAC)
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: Truy cập Admin Dashboard thành công
+ *         description: Truy cáº­p Admin Dashboard thÃ nh cÃ´ng
  *         content:
  *           application/json:
  *             schema:
@@ -397,34 +399,34 @@ router.post("/logout", logout);
  *                 message:
  *                   type: string
  *             example:
- *               message: "Bạn đã truy cập khu vực admin"
+ *               message: "Báº¡n Ä‘Ã£ truy cáº­p khu vá»±c admin"
  *       401:
- *         description: Không có token hoặc token không hợp lệ
+ *         description: KhÃ´ng cÃ³ token hoáº·c token khÃ´ng há»£p lá»‡
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             examples:
  *               noToken:
- *                 summary: Không tìm thấy token
+ *                 summary: KhÃ´ng tÃ¬m tháº¥y token
  *                 value:
- *                   message: "Không tìm thấy token"
+ *                   message: "KhÃ´ng tÃ¬m tháº¥y token"
  *                   error: "Unauthorized"
  *                   statusCode: 401
  *               invalidToken:
- *                 summary: Token không hợp lệ hoặc đã hết hạn
+ *                 summary: Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n
  *                 value:
- *                   message: "Token không hợp lệ hoặc đã hết hạn"
+ *                   message: "Token khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n"
  *                   error: "Unauthorized"
  *                   statusCode: 401
  *       403:
- *         description: Không có quyền truy cập (role không phải admin)
+ *         description: KhÃ´ng cÃ³ quyá»n truy cáº­p (role khÃ´ng pháº£i admin)
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *             example:
- *               message: "Bạn không có quyền truy cập"
+ *               message: "Báº¡n khÃ´ng cÃ³ quyá»n truy cáº­p"
  *               error: "Forbidden"
  *               statusCode: 403
  */
@@ -434,7 +436,7 @@ router.get(
   authorizeRoles("admin"),
   (req, res) => {
     res.status(200).json({
-      message: "Bạn đã truy cập khu vực admin",
+      message: "Báº¡n Ä‘Ã£ truy cáº­p khu vá»±c admin",
     });
   },
 );
