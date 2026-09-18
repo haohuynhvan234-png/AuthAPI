@@ -9,7 +9,7 @@ const removePassword = (user) => {
 
   return data;
 };
-import admin from "../config/firebase.js";
+import { getAdminAuth } from "../config/firebase.js";
 
 /**
  * POST /api/auth/google-login
@@ -27,20 +27,21 @@ export const googleLogin = async (req, res, next) => {
       });
     }
 
-    // 1. XÃ¡c thá»±c ID Token qua Firebase Admin SDK
+    // 1. hiện tượng gì ID Token qua Firebase Admin SDK
     let decodedToken;
     try {
-      decodedToken = await admin.auth().verifyIdToken(idToken);
+      const auth = getAdminAuth();`r`n    decodedToken = await auth.verifyIdToken(idToken);
     } catch (err) {
       if (err.code === "auth/id-token-expired") {
         return res.status(401).json({
-          message: "Firebase ID Token Ä‘Ã£ háº¿t háº¡n",
+          message: "Firebase ID Token bị lỗi hoặc hết hạn",
           error: "Unauthorized",
           statusCode: 401,
         });
       }
+      // Nếu token không hợp lệ hoặc có lỗi khác, trả về lỗi 401
       return res.status(401).json({
-        message: "Firebase ID Token khÃ´ng há»£p lá»‡",
+        message: "Firebase ID Token ",
         error: "Unauthorized",
         statusCode: 401,
       });
