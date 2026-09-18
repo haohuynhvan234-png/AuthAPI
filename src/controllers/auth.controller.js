@@ -31,7 +31,12 @@ export const googleLogin = async (req, res, next) => {
       const auth = getAdminAuth();
       decodedToken = await auth.verifyIdToken(idToken);
     } catch (err) {
-      console.error("[Google Login Verify Error]:", err.message, "Code:", err.code);
+      console.error(
+        "[Google Login Verify Error]:",
+        err.message,
+        "Code:",
+        err.code,
+      );
 
       if (err.code === "auth/id-token-expired") {
         return res.status(401).json({
@@ -43,7 +48,7 @@ export const googleLogin = async (req, res, next) => {
 
       // Trả về chi tiết nguyên nhân lỗi để dễ debug chính xác
       return res.status(401).json({
-        message: Xác thực Firebase thất bại: ,
+        message: "Xác thực Firebase thất bại: " + err.message,
         error: "Unauthorized",
         code: err.code || "unknown",
         statusCode: 401,
@@ -92,7 +97,8 @@ export const googleLogin = async (req, res, next) => {
 
     // 4. Ký JWT của hệ thống
     const expiresIn = process.env.JWT_EXPIRES_IN || "1d";
-    const jwtSecret = process.env.JWT_SECRET || "your_super_secret_key_13082007";
+    const jwtSecret =
+      process.env.JWT_SECRET || "your_super_secret_key_13082007";
     const token = jwt.sign(
       {
         userId: user._id.toString(),
@@ -173,7 +179,9 @@ export const login = async (req, res, next) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: normalizedEmail }).select("+password");
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      "+password",
+    );
 
     if (!user || !user.password) {
       return res.status(401).json({
@@ -192,7 +200,8 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const jwtSecret = process.env.JWT_SECRET || "your_super_secret_key_13082007";
+    const jwtSecret =
+      process.env.JWT_SECRET || "your_super_secret_key_13082007";
     const token = jwt.sign(
       {
         userId: user._id.toString(),
