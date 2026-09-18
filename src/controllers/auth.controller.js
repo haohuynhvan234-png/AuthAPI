@@ -30,7 +30,8 @@ export const googleLogin = async (req, res, next) => {
     // 1. hiện tượng gì ID Token qua Firebase Admin SDK
     let decodedToken;
     try {
-      const auth = getAdminAuth();`r`n    decodedToken = await auth.verifyIdToken(idToken);
+      const auth = getAdminAuth();
+      decodedToken = await auth.verifyIdToken(idToken);
     } catch (err) {
       if (err.code === "auth/id-token-expired") {
         return res.status(401).json({
