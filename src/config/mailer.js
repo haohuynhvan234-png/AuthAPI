@@ -1,31 +1,37 @@
-﻿import nodemailer from "nodemailer";
+﻿import dotenv from "dotenv";
+dotenv.config();
 
-const isGmail = process.env.SMTP_HOST?.includes("gmail");
+import nodemailer from "nodemailer";
 
-export const mailer = nodemailer.createTransport(
-  isGmail
-    ? {
-        service: "gmail",
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      }
-    : {
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT || 587),
-        secure:
-          process.env.SMTP_SECURE === "true" ||
-          Number(process.env.SMTP_PORT) === 465,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      }
-);
+const getMailer = () => {
+  const isGmail = process.env.SMTP_HOST?.includes("gmail");
+
+  if (isGmail) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  }
+
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT || 465),
+    secure:
+      process.env.SMTP_SECURE === "true" ||
+      Number(process.env.SMTP_PORT) === 465,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+};
 
 export const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
   const ttl = process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES || 15;
+  const mailer = getMailer();
 
   await mailer.sendMail({
     from: process.env.MAIL_FROM || process.env.SMTP_USER,
