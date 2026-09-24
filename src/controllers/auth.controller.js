@@ -1,11 +1,15 @@
-﻿import bcrypt from "bcryptjs";
+﻿import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { getAdminAuth } from "../config/firebase.js";
+import { sendPasswordResetEmail } from "../config/mailer.js";
 
 const removePassword = (user) => {
   const data = user.toObject();
   delete data.password;
+  delete data.passwordResetToken;
+  delete data.passwordResetExpires;
   return data;
 };
 
@@ -217,6 +221,110 @@ export const login = async (req, res, next) => {
       token,
       expiresIn: "1d",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const genericMessage =
+      "Nếu email này tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.";
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email là bắt buộc",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    // Tránh lộ tài khoản hoặc user đăng nhập qua Google OAuth
+    if (!user || user.authType === "google") {
+      return res.status(200).json({ message: genericMessage });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const passwordResetToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+    const ttlMinutes = Number(process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES || 15);
+
+    user.passwordResetToken = passwordResetToken;
+    user.passwordResetExpires = new Date(Date.now() + ttlMinutes * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+
+    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173";
+    const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
+
+    try {
+      await sendPasswordResetEmail({
+        email: user.email,
+        name: user.name,
+        resetUrl,
+      });
+    } catch (error) {
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      await user.save({ validateBeforeSave: false });
+      return next(error);
+    }
+
+    return res.status(200).json({ message: genericMessage });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        message: "token và newPassword là bắt buộc",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "Password mới phải có ít nhất 6 ký tự",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+
+    const passwordResetToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken,
+      passwordResetExpires: { $gt: new Date() },
+    }).select("+passwordResetToken +passwordResetExpires");
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    await user.save();
+
+    return res.status(200).json({ message: "Đặt lại mật khẩu thành công" });
   } catch (error) {
     next(error);
   }

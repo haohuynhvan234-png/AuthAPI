@@ -44,6 +44,9 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-
+userSchema.add({
+  passwordResetToken: { type: String, select: false, default: null },
+  passwordResetExpires: { type: Date, select: false, default: null },
+});
 const User = mongoose.model("User", userSchema);
 export default User;
