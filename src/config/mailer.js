@@ -1,20 +1,34 @@
 ﻿import nodemailer from "nodemailer";
 
-export const mailer = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const isGmail = process.env.SMTP_HOST?.includes("gmail");
+
+export const mailer = nodemailer.createTransport(
+  isGmail
+    ? {
+        service: "gmail",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      }
+    : {
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure:
+          process.env.SMTP_SECURE === "true" ||
+          Number(process.env.SMTP_PORT) === 465,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      }
+);
 
 export const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
   const ttl = process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES || 15;
 
   await mailer.sendMail({
-    from: process.env.MAIL_FROM,
+    from: process.env.MAIL_FROM || process.env.SMTP_USER,
     to: email,
     subject: "Đặt lại mật khẩu",
     text: `Chào ${name || "bạn"},\n\nBạn đã yêu cầu đặt lại mật khẩu. Mở link sau để đặt lại: ${resetUrl}\n\nLink hết hạn sau ${ttl} phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.`,
