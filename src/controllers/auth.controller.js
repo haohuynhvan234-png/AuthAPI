@@ -253,13 +253,18 @@ export const forgotPassword = async (req, res, next) => {
       .createHash("sha256")
       .update(rawToken)
       .digest("hex");
-    const ttlMinutes = Number(process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES || 15);
+    const ttlMinutes = Number(
+      process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES || 15,
+    );
 
     user.passwordResetToken = passwordResetToken;
     user.passwordResetExpires = new Date(Date.now() + ttlMinutes * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
-    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173";
+    const clientUrl =
+      process.env.CLIENT_URL ||
+      process.env.FRONTEND_URL ||
+      "http://localhost:3000";
     const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
 
     try {
