@@ -138,7 +138,8 @@ export const register = async (req, res, next) => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email.trim())) {
       return res.status(400).json({
-        message: "Email không hợp lệ. Vui lòng nhập đúng định dạng email chính thống (ví dụ: example@gmail.com)",
+        message:
+          "Email không hợp lệ. Vui lòng nhập đúng định dạng email chính thống (ví dụ: example@gmail.com)",
         error: "BadRequest",
         statusCode: 400,
       });
@@ -270,10 +271,7 @@ export const forgotPassword = async (req, res, next) => {
     user.passwordResetExpires = new Date(Date.now() + ttlMinutes * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
-    const clientUrl =
-      process.env.CLIENT_URL ||
-      process.env.FRONTEND_URL ||
-      "http://localhost:3000";
+    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL;
     const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
 
     try {
@@ -427,7 +425,6 @@ export const logout = async (req, res) => {
   });
 };
 
-
 export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find({}).sort({ createdAt: -1 });
@@ -492,7 +489,7 @@ export const updateUserRole = async (req, res, next) => {
     const updatedUser = await User.findByIdAndUpdate(
       id,
       { role },
-      { returnDocument: "after" }
+      { returnDocument: "after" },
     );
 
     if (!updatedUser) {
