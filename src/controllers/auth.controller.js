@@ -135,6 +135,15 @@ export const register = async (req, res, next) => {
       });
     }
 
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        message: "Email không hợp lệ. Vui lòng nhập đúng định dạng email chính thống (ví dụ: example@gmail.com)",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+
     if (password.length < 6) {
       return res.status(400).json({
         message: "Password phải có ít nhất 6 ký tự",
@@ -375,6 +384,14 @@ export const changePassword = async (req, res, next) => {
       });
     }
 
+    if (oldPassword === newPassword) {
+      return res.status(400).json({
+        message: "Mật khẩu mới không được trùng với mật khẩu cũ",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+
     const user = await User.findById(req.user.userId).select("+password");
     if (!user) {
       return res.status(404).json({
@@ -408,4 +425,89 @@ export const logout = async (req, res) => {
   return res.status(200).json({
     message: "Đăng xuất thành công",
   });
+};
+
+
+export const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find({}).sort({ createdAt: -1 });
+    const formatted = users.map((u) => removePassword(u));
+    return res.status(200).json({
+      message: "Lấy danh sách người dùng thành công",
+      data: formatted,
+      total: formatted.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (req.user.userId === id) {
+      return res.status(400).json({
+        message: "Không thể tự xóa tài khoản của chính mình",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+    const deleted = await User.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({
+        message: "Không tìm thấy người dùng",
+        error: "NotFound",
+        statusCode: 404,
+      });
+    }
+    return res.status(200).json({
+      message: "Xóa người dùng thành công",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateUserRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role || !["user", "admin"].includes(role)) {
+      return res.status(400).json({
+        message: "Vai trò không hợp lệ. Chỉ chấp nhận 'user' hoặc 'admin'",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+
+    if (req.user.userId === id && role !== "admin") {
+      return res.status(400).json({
+        message: "Bạn không thể tự hạ quyền admin của chính mình",
+        error: "BadRequest",
+        statusCode: 400,
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { role },
+      { returnDocument: "after" }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        message: "Không tìm thấy người dùng",
+        error: "NotFound",
+        statusCode: 404,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Cập nhật vai trò thành công",
+      user: removePassword(updatedUser),
+    });
+  } catch (error) {
+    next(error);
+  }
 };

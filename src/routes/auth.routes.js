@@ -9,6 +9,9 @@ import {
   getMe,
   changePassword,
   logout,
+  getAllUsers,
+  deleteUser,
+  updateUserRole,
 } from "../controllers/auth.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import authorizeRoles from "../middleware/role.middleware.js";
@@ -176,4 +179,20 @@ router.get(
   },
 );
 
+// ============================================================
+//  GET /api/auth/admin/users - Lấy danh sách users (Admin)
+// ============================================================
+router.get("/admin/users", authMiddleware, authorizeRoles("admin"), getAllUsers);
+
+// ============================================================
+//  DELETE /api/auth/admin/users/:id - Xóa user (Admin)
+// ============================================================
+router.delete("/admin/users/:id", authMiddleware, authorizeRoles("admin"), deleteUser);
+
+// ============================================================
+//  PATCH /api/auth/admin/users/:id/role - Thay đổi role (Admin)
+// ============================================================
+router.patch("/admin/users/:id/role", authMiddleware, authorizeRoles("admin"), updateUserRole);
+
 export default router;
+
