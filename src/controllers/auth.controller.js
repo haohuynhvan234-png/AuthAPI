@@ -271,7 +271,10 @@ export const forgotPassword = async (req, res, next) => {
     user.passwordResetExpires = new Date(Date.now() + ttlMinutes * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
-    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL;
+    const clientUrl =
+      "http://localhost:3000" ||
+      process.env.CLIENT_URL ||
+      process.env.FRONTEND_URL;
     const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
 
     try {
@@ -325,7 +328,7 @@ export const resetPassword = async (req, res, next) => {
 
     if (!user) {
       return res.status(400).json({
-        message: "Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn",
+        message: "Phiên đặt lại mật khẩu không hợp lệ hoặc đã hết hạn",
         error: "BadRequest",
         statusCode: 400,
       });
